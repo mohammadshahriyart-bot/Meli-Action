@@ -1,0 +1,50 @@
+name: Download from MediaFire and Upload as Split ZIP
+
+on:
+  workflow_dispatch:
+    inputs:
+      mediafire_url:
+        description: 'MediaFire URL to download'
+        required: true
+        type: string
+
+jobs:
+  download-and-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+    
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download MediaFire file
+        run: |
+          # Download mediafiredl tool
+          wget -c https://github.com/dapize/mediafiredl/releases/download/v0.4.0/mediafiredl_linux -O mediafiredl
+          chmod +x ./mediafiredl
+          # Run the downloader; it will save the file in the current directory
+          ./mediafiredl "${{ github.event.inputs.mediafire_url }}"
+    
+             
+
+      - name: Get downloaded filename
+        id: getfile
+        run: |
+          # Find the most recent file that is not the mediafiredl binary or the script itself
+          DOWNLOADED_FILE=$(ls -t | grep -v -E 'mediafiredl|\.sh$' | head -1)
+          echo "FILE_NAME=$DOWNLOADED_FILE" >> $GITHUB_ENV
+          echo "Found file: $DOWNLOADED_FILE"
+
+      - name: Upload all parts to GitHub Release
+        uses: softprops/action-gh-release@v1
+
+      - name: Upload all parts to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            split_archive.z*
+            split_archive.zip
+          tag_name: mediafire-split-${{ github.run_id }}
+          name: MediaFire Split Download ${{ github.run_id }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
