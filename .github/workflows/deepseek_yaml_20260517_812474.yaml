@@ -1,0 +1,36 @@
+name: Download from MediaFire and Upload to Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      mediafire_url:
+        description: 'MediaFire URL to download'
+        required: true
+        default: ''
+        type: string
+
+jobs:
+  download-and-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download MediaFire file
+        run: |
+          # Download the mediafiredl tool
+          wget -c https://github.com/dapize/mediafiredl/releases/download/v0.4.0/mediafiredl_linux -O mediafiredl
+          chmod +x ./mediafiredl
+          # Use mediafiredl to download the file from the input URL
+          ./mediafiredl "${{ github.event.inputs.mediafire_url }}"
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            *
+          tag_name: mediafire-download-${{ github.run_id }}
+          name: MediaFire Download ${{ github.run_id }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
